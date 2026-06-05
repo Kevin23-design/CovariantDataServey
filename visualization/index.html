@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>协变量时间序列探索仪表盘</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <h1>协变量探索</h1>
+          <p>Forecasting datasets</p>
+        </div>
+
+        <label class="field">
+          <span>数据集</span>
+          <select id="datasetSelect"></select>
+        </label>
+
+        <label class="field">
+          <span>图表</span>
+          <select id="viewSelect">
+            <option value="series">时间序列</option>
+            <option value="seasonality">季节性热力图</option>
+            <option value="distribution">分布与箱线摘要</option>
+            <option value="correlation">相关性矩阵</option>
+            <option value="lag">滞后相关</option>
+            <option value="anomaly">异常点</option>
+            <option value="channels">高维通道概览</option>
+          </select>
+        </label>
+
+        <section class="panel">
+          <div class="panel-title">变量</div>
+          <div id="variableList" class="checks"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">时间范围</div>
+          <label class="field compact">
+            <span>开始</span>
+            <input id="startDate" type="date" />
+          </label>
+          <label class="field compact">
+            <span>结束</span>
+            <input id="endDate" type="date" />
+          </label>
+          <button id="resetRange" class="secondary" type="button">重置范围</button>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <h2 id="datasetTitle">加载中</h2>
+            <p id="datasetSubtitle"></p>
+          </div>
+          <div id="statStrip" class="stat-strip"></div>
+        </header>
+
+        <section class="chart-card">
+          <div class="chart-head">
+            <div>
+              <h3 id="chartTitle">时间序列</h3>
+              <p id="chartNote"></p>
+            </div>
+          </div>
+          <canvas id="mainCanvas" width="1200" height="620"></canvas>
+          <div id="tableView" class="table-view hidden"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

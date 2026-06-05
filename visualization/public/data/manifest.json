@@ -1,0 +1,204 @@
+{
+  "datasets": [
+    {
+      "name": "BE",
+      "file": "BE.json",
+      "source": "BE.csv",
+      "freq": "hourly",
+      "rows": 157248,
+      "variables": 3,
+      "start": "2011-01-09T00:00:00",
+      "end": "2016-12-31T23:00:00"
+    },
+    {
+      "name": "Colbun",
+      "file": "Colbun.json",
+      "source": "Colbun.csv",
+      "freq": "daily",
+      "rows": 8874,
+      "variables": 3,
+      "start": "2016-01-12T00:00:00",
+      "end": "2024-02-16T00:00:00"
+    },
+    {
+      "name": "DE",
+      "file": "DE.json",
+      "source": "DE.csv",
+      "freq": "hourly",
+      "rows": 157248,
+      "variables": 3,
+      "start": "2012-01-09T00:00:00",
+      "end": "2017-12-31T23:00:00"
+    },
+    {
+      "name": "Electricity",
+      "file": "Electricity.json",
+      "source": "Electricity.csv",
+      "freq": "hourly",
+      "rows": 8443584,
+      "variables": 321,
+      "start": "2012-01-01T00:00:01",
+      "end": "2014-12-31T23:00:01"
+    },
+    {
+      "name": "Energy",
+      "file": "Energy.json",
+      "source": "Energy.csv",
+      "freq": "hourly",
+      "rows": 78384,
+      "variables": 6,
+      "start": "2024-01-01T00:00:00",
+      "end": "2025-06-28T07:00:00"
+    },
+    {
+      "name": "ETTh1",
+      "file": "ETTh1.json",
+      "source": "ETTh1.csv",
+      "freq": "hourly",
+      "rows": 121940,
+      "variables": 7,
+      "start": "2016-07-01T00:00:00",
+      "end": "2018-06-26T19:00:00"
+    },
+    {
+      "name": "ETTh2",
+      "file": "ETTh2.json",
+      "source": "ETTh2.csv",
+      "freq": "hourly",
+      "rows": 121940,
+      "variables": 7,
+      "start": "2016-07-01T00:00:00",
+      "end": "2018-06-26T19:00:00"
+    },
+    {
+      "name": "ETTm1",
+      "file": "ETTm1.json",
+      "source": "ETTm1.csv",
+      "freq": "other",
+      "rows": 487760,
+      "variables": 7,
+      "start": "2016-07-01T00:00:00",
+      "end": "2018-06-26T19:45:00"
+    },
+    {
+      "name": "ETTm2",
+      "file": "ETTm2.json",
+      "source": "ETTm2.csv",
+      "freq": "other",
+      "rows": 487760,
+      "variables": 7,
+      "start": "2016-07-01T00:00:00",
+      "end": "2018-06-26T19:45:00"
+    },
+    {
+      "name": "Exchange",
+      "file": "Exchange.json",
+      "source": "Exchange.csv",
+      "freq": "daily",
+      "rows": 60704,
+      "variables": 8,
+      "start": "1990-01-01T00:00:00",
+      "end": "2010-10-10T00:00:00"
+    },
+    {
+      "name": "FR",
+      "file": "FR.json",
+      "source": "FR.csv",
+      "freq": "hourly",
+      "rows": 157248,
+      "variables": 3,
+      "start": "2011-01-09T00:00:00",
+      "end": "2016-12-31T23:00:00"
+    },
+    {
+      "name": "NP",
+      "file": "NP.json",
+      "source": "NP.csv",
+      "freq": "hourly",
+      "rows": 157248,
+      "variables": 3,
+      "start": "2013-01-01T00:00:00",
+      "end": "2018-12-24T23:00:00"
+    },
+    {
+      "name": "PJM",
+      "file": "PJM.json",
+      "source": "PJM.csv",
+      "freq": "hourly",
+      "rows": 157248,
+      "variables": 3,
+      "start": "2013-01-01T00:00:00",
+      "end": "2018-12-24T23:00:00"
+    },
+    {
+      "name": "Rapel",
+      "file": "Rapel.json",
+      "source": "Rapel.csv",
+      "freq": "daily",
+      "rows": 10098,
+      "variables": 3,
+      "start": "2015-01-01T00:00:00",
+      "end": "2024-03-19T00:00:00"
+    },
+    {
+      "name": "Sdwpfh1",
+      "file": "Sdwpfh1.json",
+      "source": "Sdwpfh1.csv",
+      "freq": "hourly",
+      "rows": 102487,
+      "variables": 7,
+      "start": "2020-05-01T00:00:00",
+      "end": "2022-01-01T00:00:00"
+    },
+    {
+      "name": "Sdwpfh2",
+      "file": "Sdwpfh2.json",
+      "source": "Sdwpfh2.csv",
+      "freq": "hourly",
+      "rows": 102487,
+      "variables": 7,
+      "start": "2020-05-01T00:00:00",
+      "end": "2022-01-01T00:00:00"
+    },
+    {
+      "name": "Sdwpfm1",
+      "file": "Sdwpfm1.json",
+      "source": "Sdwpfm1.csv",
+      "freq": "other",
+      "rows": 204967,
+      "variables": 7,
+      "start": "2020-05-01T00:00:00",
+      "end": "2022-01-01T00:00:00"
+    },
+    {
+      "name": "Sdwpfm2",
+      "file": "Sdwpfm2.json",
+      "source": "Sdwpfm2.csv",
+      "freq": "other",
+      "rows": 204967,
+      "variables": 7,
+      "start": "2020-05-01T00:00:00",
+      "end": "2022-01-01T00:00:00"
+    },
+    {
+      "name": "Traffic",
+      "file": "Traffic.json",
+      "source": "Traffic.csv",
+      "freq": "hourly",
+      "rows": 15122928,
+      "variables": 862,
+      "start": "2015-01-01T00:00:01",
+      "end": "2016-12-31T23:00:01"
+    },
+    {
+      "name": "Weather",
+      "file": "Weather.json",
+      "source": "Weather.csv",
+      "freq": "other",
+      "rows": 1106616,
+      "variables": 21,
+      "start": "2020-01-01T00:10:00",
+      "end": "2020-12-31T22:40:00"
+    }
+  ]
+}
