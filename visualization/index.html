@@ -14,6 +14,8 @@
           <p>Forecasting datasets</p>
         </div>
 
+        <a class="doc-link" href="./calculations.html">图表计算说明</a>
+
         <label class="field">
           <span>数据集</span>
           <select id="datasetSelect"></select>
@@ -27,9 +29,15 @@
             <option value="distribution">分布与箱线摘要</option>
             <option value="correlation">相关性矩阵</option>
             <option value="lag">滞后相关</option>
+            <option value="periodicity">周期性分析</option>
             <option value="anomaly">异常点</option>
             <option value="channels">高维通道概览</option>
           </select>
+        </label>
+
+        <label id="standardizeControl" class="toggle-row">
+          <input id="standardizeToggle" type="checkbox" />
+          <span>标准化</span>
         </label>
 
         <section class="panel">

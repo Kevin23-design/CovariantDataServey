@@ -4,11 +4,14 @@ const state = {
   selectedVars: [],
   start: null,
   end: null,
+  standardized: false,
 };
 
 const els = {
   datasetSelect: document.getElementById("datasetSelect"),
   viewSelect: document.getElementById("viewSelect"),
+  standardizeControl: document.getElementById("standardizeControl"),
+  standardizeToggle: document.getElementById("standardizeToggle"),
   variableList: document.getElementById("variableList"),
   startDate: document.getElementById("startDate"),
   endDate: document.getElementById("endDate"),
@@ -97,6 +100,24 @@ function selectedAvailable() {
   return state.selectedVars.filter((name) => state.data.visibleVariables.includes(name));
 }
 
+function standardizeValue(varName, value) {
+  if (!state.standardized || value === null || value === undefined) return value;
+  const stats = state.data.stats[varName] || {};
+  const mean = Number(stats.mean);
+  const std = Number(stats.std);
+  if (!Number.isFinite(mean) || !Number.isFinite(std) || std === 0) return value;
+  return (Number(value) - mean) / std;
+}
+
+function nonStandardizableVars(vars) {
+  if (!state.standardized) return [];
+  return vars.filter((name) => {
+    const stats = state.data.stats[name] || {};
+    const std = Number(stats.std);
+    return !Number.isFinite(Number(stats.mean)) || !Number.isFinite(std) || std === 0;
+  });
+}
+
 async function loadManifest() {
   const res = await fetch("./public/data/manifest.json");
   state.manifest = await res.json();
@@ -124,6 +145,7 @@ function syncControls() {
   els.startDate.max = day(state.data.end);
   els.endDate.min = day(state.data.start);
   els.endDate.max = day(state.data.end);
+  els.standardizeToggle.checked = state.standardized;
 
   const hidden = Math.max(0, state.data.variables.length - state.data.visibleVariables.length);
   els.variableList.innerHTML = state.data.visibleVariables
@@ -146,12 +168,14 @@ function syncControls() {
 function render() {
   if (!state.data) return;
   const view = els.viewSelect.value;
+  els.standardizeControl.classList.toggle("hidden", view !== "series");
   const titles = {
-    series: ["时间序列", "折线已抽样；筛选时间范围后会同步缩放。"],
+    series: ["时间序列", seriesNote()],
     seasonality: ["季节性热力图", `使用 ${state.data.heatmapVariable} 的均值聚合。`],
     distribution: ["分布与箱线摘要", "对当前选中变量展示直方图、分位数和箱线摘要。"],
     correlation: ["相关性矩阵", "变量过多时选取波动最大的变量和 OT。"],
     lag: ["滞后相关", "展示当前变量相对目标变量的 lag 相关变化。"],
+    periodicity: ["周期性分析", "基于完整 CSV 预处理结果，比较小时、星期、月份与候选滞后周期。"],
     anomaly: ["异常点", "基于滚动 z-score 的高分异常候选。"],
     channels: ["高维通道概览", "按标准差排序展示通道均值与波动。"],
   };
@@ -162,30 +186,48 @@ function render() {
   if (view === "distribution") drawDistribution();
   if (view === "correlation") drawCorrelation();
   if (view === "lag") drawLag();
+  if (view === "periodicity") renderPeriodicity();
   if (view === "anomaly") renderAnomalies();
   if (view === "channels") renderChannels();
+}
+
+function seriesNote() {
+  if (!state.standardized) return "折线已抽样；筛选时间范围后会同步缩放。";
+  const skipped = nonStandardizableVars(selectedAvailable());
+  const suffix = skipped.length ? `；${skipped.slice(0, 3).join("、")} 缺少有效标准差，保留原值。` : "";
+  return `当前显示 z-score，便于比较不同量纲变量${suffix}`;
 }
 
 function drawSeries() {
   const ctx = clearCanvas();
   const area = chartArea(ctx);
   const vars = selectedAvailable();
-  const allPoints = vars.flatMap((name) => filteredSeries(name).map((p) => p.value).filter((v) => v !== null));
+  const allPoints = vars.flatMap((name) =>
+    filteredSeries(name)
+      .map((p) => standardizeValue(name, p.value))
+      .filter((v) => v !== null && Number.isFinite(Number(v)))
+  );
   if (!allPoints.length) return drawMessage(ctx, "当前时间范围内没有可绘制数据");
   const minY = Math.min(...allPoints);
   const maxY = Math.max(...allPoints);
   const [start, end] = getDateRangeMs();
-  drawAxes(ctx, area, [day(start), day(end)], "值");
+  drawAxes(ctx, area, [day(start), day(end)], state.standardized ? "z-score" : "值");
 
   vars.forEach((name, idx) => {
     const points = filteredSeries(name);
+    let started = false;
     ctx.beginPath();
     ctx.strokeStyle = colors[idx % colors.length];
     ctx.lineWidth = 2;
-    points.forEach((p, i) => {
+    points.forEach((p) => {
+      const value = standardizeValue(name, p.value);
+      if (value === null || !Number.isFinite(Number(value))) return;
       const x = area.x + ((new Date(p.date).getTime() - start) / Math.max(1, end - start)) * area.w;
-      const y = area.y + area.h - ((p.value - minY) / Math.max(1e-12, maxY - minY)) * area.h;
-      if (i === 0) ctx.moveTo(x, y);
+      const y = area.y + area.h - ((value - minY) / Math.max(1e-12, maxY - minY)) * area.h;
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      }
       else ctx.lineTo(x, y);
     });
     ctx.stroke();
@@ -310,6 +352,32 @@ function renderAnomalies() {
     .join("")}</tbody></table>`);
 }
 
+function renderPeriodicity() {
+  const periodicity = state.data.periodicity;
+  if (!periodicity || !Array.isArray(periodicity.variables)) {
+    showTable('<div class="empty-state">请重新运行预处理生成周期性摘要</div>');
+    return;
+  }
+  const selected = new Set(selectedAvailable());
+  if (!selected.size) {
+    showTable('<div class="empty-state">请选择至少一个变量</div>');
+    return;
+  }
+  const rows = periodicity.variables.filter((row) => selected.has(row.variable)).slice(0, 8);
+  if (!rows.length) {
+    showTable('<div class="empty-state">当前变量没有周期性摘要</div>');
+    return;
+  }
+  showTable(`<table><thead><tr><th>变量</th><th>最强周期</th><th>小时强度</th><th>星期强度</th><th>月份强度</th><th>自相关峰值</th></tr></thead><tbody>${rows
+    .map((r) => {
+      const best = r.autocorrelation && r.autocorrelation.best;
+      const strengths = r.strengths || {};
+      const bestText = best && best.correlation !== null ? `${best.label} (${fmt(best.correlation)})` : "-";
+      return `<tr><td>${r.variable}</td><td>${r.strongestCycle || "-"}</td><td>${fmt(strengths.hour)}</td><td>${fmt(strengths.weekday)}</td><td>${fmt(strengths.month)}</td><td>${bestText}</td></tr>`;
+    })
+    .join("")}</tbody></table>`);
+}
+
 function renderChannels() {
   const rows = state.data.channelOverview.channels;
   showTable(`<table><thead><tr><th>通道</th><th>均值</th><th>标准差</th><th>最小值</th><th>最大值</th></tr></thead><tbody>${rows
@@ -350,6 +418,10 @@ function corrColor(v) {
 
 els.datasetSelect.addEventListener("change", () => loadDataset(els.datasetSelect.value));
 els.viewSelect.addEventListener("change", render);
+els.standardizeToggle.addEventListener("change", () => {
+  state.standardized = els.standardizeToggle.checked;
+  render();
+});
 els.variableList.addEventListener("change", () => {
   state.selectedVars = [...els.variableList.querySelectorAll("input:checked")].map((input) => input.value);
   render();

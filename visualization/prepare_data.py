@@ -18,6 +18,7 @@ MAX_CORR_VARS = 60
 MAX_LAG_POINTS = 36
 MAX_ANOMALIES = 80
 MAX_CHANNELS = 120
+PERIODICITY_LAG_DAYS = (1, 7, 30)
 
 
 def clean_number(value: object) -> float | None:
@@ -89,6 +90,100 @@ def histogram(values: pd.Series, bins: int = 36) -> dict[str, list[float | int]]
         "edges": [clean_number(x) for x in edges],
         "counts": [int(x) for x in counts],
     }
+
+
+def bounded_ratio(value: float | None) -> float | None:
+    if value is None or not math.isfinite(value):
+        return None
+    return clean_number(max(0.0, min(1.0, value)))
+
+
+def periodic_strength(values: pd.Series, groups: pd.Series) -> float | None:
+    clean = pd.DataFrame({"value": pd.to_numeric(values, errors="coerce"), "group": groups}).dropna()
+    if clean["group"].nunique() < 2:
+        return None
+    total_var = clean["value"].var(ddof=0)
+    if not math.isfinite(total_var) or total_var <= 0:
+        return None
+    profile_var = clean.groupby("group", observed=True)["value"].mean().var(ddof=0)
+    return bounded_ratio(float(profile_var) / float(total_var))
+
+
+def candidate_lags(step_minutes: float | None) -> list[dict[str, object]]:
+    if not step_minutes or step_minutes <= 0:
+        return []
+    lags = []
+    seen = set()
+    for days in PERIODICITY_LAG_DAYS:
+        lag = int(round(days * 24 * 60 / step_minutes))
+        if lag <= 0 or lag in seen:
+            continue
+        seen.add(lag)
+        label = "24小时" if days == 1 else f"{days}天"
+        lags.append({"label": label, "lag": lag})
+    return lags
+
+
+def strongest_cycle(strengths: dict[str, float | None], best_corr: dict[str, object] | None) -> str:
+    labels = {"hour": "小时", "weekday": "星期", "month": "月份"}
+    candidates = [
+        (labels[key], value)
+        for key, value in strengths.items()
+        if value is not None
+    ]
+    if best_corr and best_corr.get("correlation") is not None:
+        candidates.append((str(best_corr["label"]), abs(float(best_corr["correlation"]))))
+    if not candidates:
+        return "-"
+    return max(candidates, key=lambda item: item[1])[0]
+
+
+def make_periodicity(frame: pd.DataFrame, variables: list[str], freq_hint: str, step_minutes: float | None) -> dict[str, object]:
+    rows = []
+    lags = candidate_lags(step_minutes)
+    work = frame[frame["cols"].isin(variables)].copy()
+    work["hour"] = work["date"].dt.hour
+    work["weekday"] = work["date"].dt.dayofweek
+    work["month"] = work["date"].dt.month
+
+    for var, group in work.groupby("cols", observed=True):
+        ordered = group.sort_values("date")
+        values = pd.to_numeric(ordered["data"], errors="coerce")
+        strengths = {
+            "hour": periodic_strength(values, ordered["hour"]) if freq_hint in {"hourly", "other"} else None,
+            "weekday": periodic_strength(values, ordered["weekday"]),
+            "month": periodic_strength(values, ordered["month"]),
+        }
+
+        autocorr_candidates = []
+        for item in lags:
+            lag = int(item["lag"])
+            corr = values.autocorr(lag=lag) if len(values) > lag + 2 else None
+            autocorr_candidates.append(
+                {
+                    "label": item["label"],
+                    "lag": lag,
+                    "correlation": clean_number(corr),
+                }
+            )
+
+        valid_corrs = [item for item in autocorr_candidates if item["correlation"] is not None]
+        best_corr = max(valid_corrs, key=lambda item: abs(float(item["correlation"])), default=None)
+        rows.append(
+            {
+                "variable": str(var),
+                "strongestCycle": strongest_cycle(strengths, best_corr),
+                "strengths": strengths,
+                "autocorrelation": {
+                    "candidates": autocorr_candidates,
+                    "best": best_corr,
+                },
+            }
+        )
+
+    order = {name: idx for idx, name in enumerate(variables)}
+    rows.sort(key=lambda item: order.get(str(item["variable"]), len(order)))
+    return {"variables": rows}
 
 
 def make_heatmap(frame: pd.DataFrame, freq_hint: str) -> dict[str, object]:
@@ -261,6 +356,8 @@ def process_file(path: Path, meta_row: dict[str, object] | None) -> dict[str, ob
     heatmap = make_heatmap(df[df["cols"] == heatmap_source_var], freq_hint)
     anomalies = make_anomalies(df, corr_vars)
     channel_overview = make_channel_overview(stats)
+    visible_variables = list(series.keys())
+    periodicity = make_periodicity(df, visible_variables, freq_hint, step_minutes)
 
     dataset = {
         "name": path.stem,
@@ -268,7 +365,7 @@ def process_file(path: Path, meta_row: dict[str, object] | None) -> dict[str, ob
         "freq": freq_hint,
         "rows": int(len(df)),
         "variables": variables,
-        "visibleVariables": list(series.keys()),
+        "visibleVariables": visible_variables,
         "start": df["date"].min().isoformat(),
         "end": df["date"].max().isoformat(),
         "stepMinutes": step_minutes,
@@ -279,6 +376,7 @@ def process_file(path: Path, meta_row: dict[str, object] | None) -> dict[str, ob
         "heatmap": heatmap,
         "correlation": correlation,
         "lag": lag,
+        "periodicity": periodicity,
         "anomalies": anomalies,
         "channelOverview": channel_overview,
     }

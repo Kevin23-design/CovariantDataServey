@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>图表计算说明</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="doc-shell">
+      <header class="doc-header">
+        <a class="doc-link" href="./index.html">返回仪表盘</a>
+        <h1>图表计算说明</h1>
+        <p>本页说明可视化页面中各类图表和指标的来源、预处理方式与计算口径。</p>
+      </header>
+
+      <section class="doc-section">
+        <h2>数据预处理</h2>
+        <p>原始 CSV 位于 <code>dataset/forecasting</code>，每条记录包含 <code>date</code>、<code>data</code>、<code>cols</code> 三列。</p>
+        <p><code>prepare_data.py</code> 会将每个数据集转换为静态 JSON：解析时间、清理空值、按变量计算统计量，并生成页面直接读取的摘要数据。</p>
+      </section>
+
+      <section class="doc-grid">
+        <article class="doc-card">
+          <h2>时间序列</h2>
+          <p>每个变量最多抽样 900 个时间点绘制折线，时间范围筛选会在前端按日期过滤这些抽样点。</p>
+          <p>勾选“标准化”后，仅时间序列图会显示 z-score：</p>
+          <pre><code>z = (x - mean) / std</code></pre>
+          <p>其中 <code>mean</code> 和 <code>std</code> 来自完整变量序列。若标准差缺失或为 0，该变量保留原始值。</p>
+        </article>
+
+        <article class="doc-card">
+          <h2>季节性热力图</h2>
+          <p>默认使用目标变量 <code>OT</code>；若没有 <code>OT</code>，则使用第一个变量。</p>
+          <p>小时级或其他高频数据按“星期 × 小时”聚合均值；日级数据按“月份 × 日期”聚合均值。</p>
+        </article>
+
+        <article class="doc-card">
+          <h2>分布与箱线摘要</h2>
+          <p>直方图基于完整变量序列计算固定分箱计数。</p>
+          <p>箱线摘要使用最小值、25% 分位数、中位数、75% 分位数和最大值；下方均值与标准差也来自完整变量序列。</p>
+        </article>
+
+        <article class="doc-card">
+          <h2>相关性矩阵</h2>
+          <p>先按变量标准差排序，并优先保留 <code>OT</code>，最多选取 60 个变量。</p>
+          <p>将长表转换为以时间为索引、变量为列的宽表后，计算变量之间的 Pearson 相关系数。</p>
+        </article>
+
+        <article class="doc-card">
+          <h2>滞后相关</h2>
+          <p>目标变量优先为 <code>OT</code>，否则使用第一个候选变量。</p>
+          <p>对每个变量计算 <code>lag 0</code> 到 <code>lag 36</code> 与目标变量的相关性，用于观察领先或滞后关系。</p>
+        </article>
+
+        <article class="doc-card">
+          <h2>异常点</h2>
+          <p>对候选变量计算滚动均值和滚动标准差，再得到滚动 z-score 的绝对值。</p>
+          <p>页面展示异常分数最高的候选点，分数越高代表越偏离局部窗口内的常规波动。</p>
+        </article>
+
+        <article class="doc-card">
+          <h2>高维通道概览</h2>
+          <p>对全部变量计算均值、标准差、最小值和最大值。</p>
+          <p>结果按标准差从高到低排序，最多展示 120 个通道，帮助快速查看波动最大的变量。</p>
+        </article>
+
+        <article class="doc-card">
+          <h2>周期性分析</h2>
+          <p>周期性摘要由完整 CSV 预处理生成，不使用时间序列图里的抽样点。</p>
+          <p>小时、星期、月份强度按以下比例估计：</p>
+          <pre><code>周期强度 = 分组均值方差 / 总方差</code></pre>
+          <p>自相关候选周期根据采样间隔换算为 24 小时、7 天和 30 天 lag，并记录相关性最高的候选周期。</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
