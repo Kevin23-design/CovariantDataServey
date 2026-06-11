@@ -27,6 +27,28 @@ const els = {
 
 const colors = ["#0f766e", "#b45309", "#2563eb", "#be123c", "#7c3aed", "#15803d", "#c2410c", "#0e7490"];
 const cnWeek = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+const endogenousByDataset = {
+  ETTh1: ["OT"],
+  ETTh2: ["OT"],
+  ETTm1: ["OT"],
+  ETTm2: ["OT"],
+  Weather: ["OT"],
+  Electricity: ["channel_321"],
+  Exchange: ["OT"],
+  Traffic: ["channel_862"],
+  NP: ["OT"],
+  PJM: ["OT"],
+  BE: ["OT"],
+  FR: ["OT"],
+  DE: ["OT"],
+  Energy: ["Thermoelectric"],
+  Colbun: ["Water_Level_daily_avg"],
+  Rapel: ["Water_Level_daily_avg"],
+  Sdwpfh1: ["Patv"],
+  Sdwpfh2: ["Patv"],
+  Sdwpfm1: ["Patv"],
+  Sdwpfm2: ["Patv"],
+};
 
 function fmt(n) {
   if (n === null || n === undefined || Number.isNaN(Number(n))) return "-";
@@ -100,6 +122,10 @@ function selectedAvailable() {
   return state.selectedVars.filter((name) => state.data.visibleVariables.includes(name));
 }
 
+function isEndogenous(name) {
+  return (endogenousByDataset[state.data.name] || []).includes(name);
+}
+
 function standardizeValue(varName, value) {
   if (!state.standardized || value === null || value === undefined) return value;
   const stats = state.data.stats[varName] || {};
@@ -151,7 +177,8 @@ function syncControls() {
   els.variableList.innerHTML = state.data.visibleVariables
     .map((name) => {
       const checked = state.selectedVars.includes(name) ? "checked" : "";
-      return `<label class="check-row"><input type="checkbox" value="${name}" ${checked} /> <span>${name}</span></label>`;
+      const endogenousClass = isEndogenous(name) ? " endogenous-var" : "";
+      return `<label class="check-row"><input type="checkbox" value="${name}" ${checked} /> <span class="${endogenousClass.trim()}">${name}</span></label>`;
     })
     .join("") + (hidden ? `<div class="check-row"><span>另有 ${hidden} 个通道在高维概览中展示</span></div>` : "");
 

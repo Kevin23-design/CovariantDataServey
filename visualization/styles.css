@@ -135,6 +135,11 @@ input {
   min-height: 16px;
 }
 
+.endogenous-var {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .toggle-row {
   display: flex;
   align-items: center;

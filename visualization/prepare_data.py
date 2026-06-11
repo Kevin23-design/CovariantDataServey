@@ -19,6 +19,28 @@ MAX_LAG_POINTS = 36
 MAX_ANOMALIES = 80
 MAX_CHANNELS = 120
 PERIODICITY_LAG_DAYS = (1, 7, 30)
+ENDOGENOUS_BY_DATASET = {
+    "ETTh1": {"OT"},
+    "ETTh2": {"OT"},
+    "ETTm1": {"OT"},
+    "ETTm2": {"OT"},
+    "Weather": {"OT"},
+    "Electricity": {"channel_321"},
+    "Exchange": {"OT"},
+    "Traffic": {"channel_862"},
+    "NP": {"OT"},
+    "PJM": {"OT"},
+    "BE": {"OT"},
+    "FR": {"OT"},
+    "DE": {"OT"},
+    "Energy": {"Thermoelectric"},
+    "Colbun": {"Water_Level_daily_avg"},
+    "Rapel": {"Water_Level_daily_avg"},
+    "Sdwpfh1": {"Patv"},
+    "Sdwpfh2": {"Patv"},
+    "Sdwpfm1": {"Patv"},
+    "Sdwpfm2": {"Patv"},
+}
 
 
 def clean_number(value: object) -> float | None:
@@ -90,6 +112,10 @@ def histogram(values: pd.Series, bins: int = 36) -> dict[str, list[float | int]]
         "edges": [clean_number(x) for x in edges],
         "counts": [int(x) for x in counts],
     }
+
+
+def endogenous_variables(dataset_name: str) -> set[str]:
+    return ENDOGENOUS_BY_DATASET.get(dataset_name, set())
 
 
 def bounded_ratio(value: float | None) -> float | None:
@@ -341,12 +367,14 @@ def process_file(path: Path, meta_row: dict[str, object] | None) -> dict[str, ob
     stats: dict[str, dict[str, object]] = {}
     series: dict[str, list[dict[str, object]]] = {}
     hists: dict[str, dict[str, list[float | int]]] = {}
+    endogenous = endogenous_variables(path.stem)
     for var, group in df.groupby("cols", observed=True):
         ordered = group.sort_values("date")
-        stats[str(var)] = variable_stats(ordered)
-        if len(series) < MAX_CHANNELS:
-            series[str(var)] = json_records(sample_frame(ordered))
-            hists[str(var)] = histogram(ordered["data"])
+        var_name = str(var)
+        stats[var_name] = variable_stats(ordered)
+        if len(series) < MAX_CHANNELS or var_name in endogenous:
+            series[var_name] = json_records(sample_frame(ordered))
+            hists[var_name] = histogram(ordered["data"])
 
     corr_vars = pick_correlation_vars(stats)
     wide = make_wide(df, corr_vars)
